@@ -37,7 +37,7 @@ VisualTest::VisualTest()
 {
 }
 
-void VisualTest::SetupNativeImage( Dali::Window window )
+void VisualTest::SetupNativeImage( Dali::Window window, Dali::CameraActor customCamera )
 {
   if( !mOffscreenRenderTask || window.GetRootLayer() != mWindow.GetHandle() )
   {
@@ -50,11 +50,6 @@ void VisualTest::SetupNativeImage( Dali::Window window )
     mFrameBuffer = FrameBuffer::New( mNativeTexture.GetWidth(), mNativeTexture.GetHeight(), FrameBuffer::Attachment::NONE );
     mFrameBuffer.AttachColorTexture( mNativeTexture );
 
-    mCameraActor = CameraActor::New( Vector2(window.GetSize().GetWidth(), window.GetSize().GetHeight()) );
-    mCameraActor.SetProperty( Actor::Property::PARENT_ORIGIN, ParentOrigin::CENTER );
-    mCameraActor.SetProperty( Actor::Property::ANCHOR_POINT, AnchorPoint::CENTER );
-    window.Add( mCameraActor );
-
     RenderTaskList taskList = window.GetRenderTaskList();
     if ( mOffscreenRenderTask )
     {
@@ -64,17 +59,30 @@ void VisualTest::SetupNativeImage( Dali::Window window )
     mOffscreenRenderTask.SetSourceActor( window.GetRootLayer() );
     mOffscreenRenderTask.SetClearColor( window.GetBackgroundColor() );
     mOffscreenRenderTask.SetClearEnabled( true );
-    mOffscreenRenderTask.SetCameraActor( mCameraActor );
-    mOffscreenRenderTask.GetCameraActor().SetInvertYAxis( false );
     mOffscreenRenderTask.SetFrameBuffer( mFrameBuffer );
+
+    if (customCamera)
+    {
+      mOffscreenRenderTask.SetCameraActor( customCamera );
+    }
+    else
+    {
+      mCameraActor = CameraActor::New( Vector2(window.GetSize().GetWidth(), window.GetSize().GetHeight()) );
+      mCameraActor.SetProperty( Actor::Property::PARENT_ORIGIN, ParentOrigin::CENTER );
+      mCameraActor.SetProperty( Actor::Property::ANCHOR_POINT, AnchorPoint::CENTER );
+      mCameraActor.SetInvertYAxis( false );
+      window.Add( mCameraActor );
+
+      mOffscreenRenderTask.SetCameraActor( mCameraActor );
+    }
   }
 
   mOffscreenRenderTask.SetRefreshRate( RenderTask::REFRESH_ONCE );
 }
 
-void VisualTest::CaptureWindow( Dali::Window window )
+void VisualTest::CaptureWindow( Dali::Window window, Dali::CameraActor customCamera )
 {
-  SetupNativeImage( window );
+  SetupNativeImage( window, customCamera );
 
   mOffscreenRenderTask.FinishedSignal().Connect( this, &VisualTest::OnOffscreenRenderFinished );
 }
