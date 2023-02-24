@@ -19,7 +19,7 @@
 #include <cstdio>
 #include <dali-scene3d/public-api/loader/animation-definition.h>
 #include <dali-scene3d/public-api/loader/camera-parameters.h>
-#include <dali-scene3d/public-api/loader/dli-loader.h>
+#include <dali-scene3d/public-api/loader/model-loader.h>
 #include <dali-scene3d/public-api/loader/light-parameters.h>
 #include <dali-scene3d/public-api/loader/load-result.h>
 #include <dali-scene3d/public-api/loader/node-definition.h>
@@ -162,32 +162,23 @@ private:
 
     auto path = pathProvider(ResourceType::Mesh) + sceneName;
 
-    ResourceBundle resources;
-    SceneDefinition scene;
-    SceneMetadata metaData;
-    std::vector<AnimationGroupDefinition> animGroups;
-    std::vector<CameraParameters> cameraParameters;
-    std::vector<LightParameters> lights;
-    std::vector<AnimationDefinition> animations;
+    Dali::Scene3D::Loader::ModelLoader modelLoader(path, pathProvider(ResourceType::Mesh) + "/");
+    modelLoader.LoadModel();
 
-    DliLoader loader;
-    DliLoader::InputParams input{
-        pathProvider(ResourceType::Mesh), nullptr, {}, {}, nullptr,
-    };
-    LoadResult output{resources, scene, metaData, animations, animGroups,
-                      cameraParameters, lights};
-    DliLoader::LoadParams loadParams{input, output};
-    DALI_ASSERT_ALWAYS(loader.LoadScene(path, loadParams));
+    auto &scene = modelLoader.GetScene();
+    auto &resources = modelLoader.GetResources();
+    auto &cameras = modelLoader.GetCameras();
 
-    if (cameraParameters.empty()) {
-      cameraParameters.push_back(CameraParameters());
-      cameraParameters[0].matrix.SetTranslation(CAMERA_DEFAULT_POSITION);
+    if (cameras.empty())
+    {
+      cameras.push_back(CameraParameters());
+      cameras[0].matrix.SetTranslation(CAMERA_DEFAULT_POSITION);
     }
 
-    cameraParameters[0].ConfigureCamera(camera);
+    cameras[0].ConfigureCamera(camera);
     SetActorCentered(camera);
 
-    ViewProjection viewProjection = cameraParameters[0].GetViewProjection();
+    ViewProjection viewProjection = cameras[0].GetViewProjection();
     Transforms xforms{MatrixStack{}, viewProjection};
     NodeDefinition::CreateParams nodeParams{
         resources,
@@ -219,6 +210,7 @@ private:
       }
     }
 
+    auto& animations = modelLoader.GetAnimations();
     if (!animations.empty()) {
       auto getActor = [&sceneRoot](const Scene3D::Loader::AnimatedProperty& property) {
       return sceneRoot.FindChildByName(property.mNodeName);
